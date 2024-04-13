@@ -1,0 +1,23 @@
+{
+  "name": "backendproject",
+  "version": "1.0.0",
+  "description": "Backend Project for learning with chai and code",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [
+    "node",
+    "javascript",
+    "backend"
+  ],
+  "author": "Mukul Kumar Sharma",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "dependencies": {
+    "prettier": "^3.2.5"
+  }
+}
