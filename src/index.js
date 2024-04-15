@@ -10,8 +10,8 @@ connectDB().then(()=>{
         console.log(`listen at the port ${process.env.PORT}`);
     });
 
-    app.on('error',()=>{
-        console.log('Getting Error on listing MongoDB at port 8000')
+    app.on('error',(err)=>{
+        console.log('Getting Error on listing MongoDB at port 8000', err)
     })
     
 }).catch((err)=>{
