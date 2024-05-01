@@ -156,10 +156,9 @@ const loggedoutUser = asynchHandler(async (req, res) => {
       },
     },
     {
-      new: true,
+      new: true, // this will ensure you will get user detail after updation
     }
   );
-
 
   const option = {
     httpOnly: true,
@@ -185,20 +184,16 @@ const refreshAccessToken = asynchHandler(async (req, res) => {
 
   if (!incomingRefreshToken) throw new ApiError(401, "unauthorized request");
 
-
   const decodedToken = await jwt.verify(
     incomingRefreshToken,
     process.env.REFRESH_TOKEN_SECRET
   );
 
-  
   if (!decodedToken) throw new ApiError(401, "unauthorized request");
-
 
   const user = await User.findById(decodedToken?._id);
 
   if (!user) throw new ApiError(401, "Invalid refresh token");
-
 
   // do we really required this step
   if (incomingRefreshToken !== user?.refreshToken)
@@ -226,4 +221,146 @@ const refreshAccessToken = asynchHandler(async (req, res) => {
     );
 });
 
-export { registerUser, loginUser, loggedoutUser, refreshAccessToken };
+const changeCurrentPassword = asynchHandler(async (req, res) => {
+  // will take newPassword and oldPassword from req body
+  // validate if the newPassword is correct => by isPasswordCorrect
+  // as we had used verifyJWT middle for this controller we get the user id in req object
+  // then fetch the user from db
+  // update the password of user and save it
+  // return response to user
+
+  const { oldPassword, newPassword } = req.body;
+
+  if (!oldPassword && !newPassword)
+    throw new ApiError(400, "Invalid old password");
+
+  const user = await User.findById(req.user?._id);
+
+  if (!user) throw new ApiError(401, "invalid user");
+
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+
+  if (!isPasswordCorrect) throw new ApiError(400, "Invalid old password");
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "password updated succesfully"));
+});
+
+const getCurrentUser = asynchHandler(async (req, res) => {
+  // using middleware(auth.middleware) we are getting user so we can directly return it to user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, "Current user details"));
+});
+
+const updateAccountDetails = asynchHandler(async (req, res) => {
+  // get the feild required to update
+  // validate the feilds are required
+  // update the feilds in db
+  // return response with updated feilds
+  const { fullName, email } = req.body;
+
+  if (!fullName || !email) throw new ApiError(400, "All feilds required");
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: { fullName, email },
+    },
+    {
+      new: true,
+    }
+  ).select("-password -refreshToken");
+
+  if (!user) throw new ApiError(400, "Invalid user");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated successfully"));
+});
+
+const updateUserAvatar = asynchHandler(async (req, res) => {
+  // we required avtar from user , that we can get using multer
+  // validate the local path
+  // upload on cloudinary
+  // validate is uploade on cloudanary
+  // then update db with new path
+  // return user
+
+  // we had used req.file instead of files in regestration request , because here we are just expecting one single file for avtar
+  const avatarLocalPath = req.file.avatar?.path;
+
+  if (!avatarLocalPath) throw new ApiError(400, "Avatar file is missing");
+
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+  if (!avatar.url) throw new ApiError(400, "Error while uploading on avatar");
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select('-password -refreshToken');
+
+  if (!user) throw new ApiError(400, "Invalid user");
+
+  return req.status(200).json(new ApiResponse(200,user,'Avtar image updated succesfully'))
+
+});
+
+const updateUserCoverImage = asynchHandler(async (req, res) => {
+  // we required avtar from user , that we can get using multer
+  // validate the local path
+  // upload on cloudinary
+  // validate is uploade on cloudanary
+  // then update db with new path
+  // return user
+
+  // we had used req.file instead of files in regestration request , because here we are just expecting one single file for avtar
+  const coverImageLocalPath = req.file.avatar?.path;
+
+  if (!coverImageLocalPath) throw new ApiError(400, "Cover file is missing");
+
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+  if (!coverImage.url) throw new ApiError(400, "Error while uploading on coverImage");
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        coverImage: coverImage.url,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select('-password -refreshToken');
+
+  if (!user) throw new ApiError(400, "Invalid user");
+
+  return req.status(200).json(new ApiResponse(200,user,'Cover image updated succesfully'))
+
+});
+
+export {
+  registerUser,
+  loginUser,
+  loggedoutUser,
+  refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAccountDetails,
+  updateUserAvatar,
+  updateUserCoverImage
+};
