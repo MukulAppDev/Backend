@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import fs from "fs";
 
 const generateAccessAndRefereshTokens = async (userId) => {
   try {
@@ -23,6 +24,10 @@ const generateAccessAndRefereshTokens = async (userId) => {
     );
   }
 };
+
+const removeImageFilelocal = (localFilePath)=>{
+  return localFilePath && fs.unlinkSync(localFilePath)
+}
 
 const registerUser = asynchHandler(async (req, res) => {
   // get user details from frontend
@@ -300,6 +305,8 @@ const updateUserAvatar = asynchHandler(async (req, res) => {
 
   if (!avatar.url) throw new ApiError(400, "Error while uploading on avatar");
 
+  removeImageFilelocal(avatarLocalPath);
+
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
@@ -334,6 +341,8 @@ const updateUserCoverImage = asynchHandler(async (req, res) => {
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
   if (!coverImage.url) throw new ApiError(400, "Error while uploading on coverImage");
+
+  removeImageFilelocal(coverImageLocalPath);
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
